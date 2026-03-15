@@ -39,7 +39,7 @@ func New(id types.Uint128, peers []types.Uint128, client tb.Client, minTrade, ma
 		client:   client,
 		minTrade: minTrade,
 		maxTrade: maxTrade,
-		rng:      rand.New(rand.NewSource(s)),
+		rng:      rand.New(rand.NewSource(time.Now().UnixNano() ^ s)), // XOR with agent ID ensures distinct sequences within the same run
 	}
 }
 
