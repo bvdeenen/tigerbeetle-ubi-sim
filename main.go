@@ -11,6 +11,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net"
 	"os"
 	"os/signal"
 	"sync"
@@ -25,6 +26,22 @@ import (
 	"github.com/bvdeenen/tigerbeetle-demo/reporter"
 	"github.com/bvdeenen/tigerbeetle-demo/ubi"
 )
+
+func resolveAddress(addr string) (string, error) {
+	host, port, err := net.SplitHostPort(addr)
+	if err != nil {
+		// No host, addr is just a port number.
+		return addr, nil
+	}
+	if net.ParseIP(host) != nil {
+		return addr, nil
+	}
+	ips, err := net.LookupHost(host)
+	if err != nil {
+		return "", err
+	}
+	return net.JoinHostPort(ips[0], port), nil
+}
 
 func main() {
 	nAgents := flag.Int("agents", 5, "number of simulated humans")
@@ -42,9 +59,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	client, err := tb.NewClient(types.ToUint128(0), []string{*tbAddress})
+	resolvedAddress, err := resolveAddress(*tbAddress)
 	if err != nil {
-		log.Fatalf("connect to TigerBeetle at %s: %v", *tbAddress, err)
+		log.Fatalf("resolve TigerBeetle address %s: %v", *tbAddress, err)
+	}
+	client, err := tb.NewClient(types.ToUint128(0), []string{resolvedAddress})
+	if err != nil {
+		log.Fatalf("connect to TigerBeetle at %s: %v", resolvedAddress, err)
 	}
 	defer client.Close()
 
